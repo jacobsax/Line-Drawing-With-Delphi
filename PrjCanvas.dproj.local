@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2014/12/15 10:43:32.000.879,=F:\RAD Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2014/12/15 10:44:08.000.066,F:\RAD Studio\Projects\Unit1.dfm=F:\A2 Computing\Programs\Practicing needed Routines\More Canvas\FrmCanvas.dfm</Transaction>
+    <Transaction>2014/12/15 10:44:08.000.066,F:\RAD Studio\Projects\Unit1.pas=F:\A2 Computing\Programs\Practicing needed Routines\More Canvas\FrmCanvas.pas</Transaction>
+    <Transaction>2014/12/15 10:44:12.000.985,F:\RAD Studio\Projects\Project1.dproj=F:\A2 Computing\Programs\Practicing needed Routines\More Canvas\PrjCanvas.dproj</Transaction>
+  </Transactions>
+</BorlandProject>

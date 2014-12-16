@@ -1,0 +1,253 @@
+unit FrmCanvas;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, StdCtrls;
+
+type
+  TForm1 = class(TForm)
+    LstMapList: TListBox;
+    EdtMapName: TEdit;
+    BtnMapToList: TButton;
+    Map: TImage;
+    btnDrawBuilding: TButton;
+    btnSnapping: TButton;
+    btnUndo: TButton;
+    btnDrawLines: TButton;
+    lblSelectedRoom: TLabel;
+
+    procedure MapMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure MapMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure MapMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure BtnMapToListClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
+    procedure btnSnappingClick(Sender: TObject);
+    procedure btnUndoClick(Sender: TObject);
+    function  roundLocation (input : integer) : integer;
+    procedure drawPreLines();
+
+    procedure btnDrawBuildingClick(Sender: TObject);
+    procedure btnDrawLinesClick(Sender: TObject);
+  private
+
+  public
+    Drawing: Boolean;
+    { Public declarations }
+  end;
+
+type TRoom = record
+  x, y : integer;
+  name : string;
+  selected : boolean;
+end;
+
+type TPointArray = array [1..1000, 1..4] of Integer;
+type TRoomArray = array [1..100] of TRoom;
+
+var
+  Form1: TForm1;
+  RoomLocations : TRoomArray;
+  StartX, StartY : Integer;
+  SPoint, EPoint: TPoint;
+  Angle: Integer;
+  ArrayPoints: TPointArray;
+  Counter, roomCounter : Integer;
+  SnappingEnabled, addingRoom, drawingEnabled : Boolean;
+
+
+implementation
+
+{$R *.dfm}
+
+function TForm1.roundLocation (input : integer) : integer;
+var low : integer;
+begin
+  low := input mod 10;
+  if (low < 5) then
+    roundLocation := input - low
+  else
+    roundLocation := input + 10 - low;
+end;
+
+
+procedure TForm1.drawPreLines;
+var i : integer;
+begin
+  map.canvas.brush.color:=clwhite;
+  map.canvas.rectangle(clientrect);
+  map.canvas.brush.color:=clblack;
+  cursor := crNone;
+  cursor := crdefault;
+  for i := 1 to counter do
+  begin
+    map.Canvas.MoveTo(ArrayPoints[i, 1],  ArrayPoints[i, 2]);
+    map.Canvas.LineTo(ArrayPoints[i, 3],  ArrayPoints[i, 4]);
+  end;
+
+  for i := 1 to roomCounter do
+  begin
+    if (roomLocations[i].selected = False) then
+      map.canvas.brush.color:=clblue
+    else
+      map.canvas.brush.color:=clred;
+
+    map.Canvas.Rectangle(roomLocations[i].x, roomLocations[i].y, roomLocations[i].x + 10, roomLocations[i].y + 10);
+
+
+  end;
+end;
+
+procedure TForm1.BtnMapToListClick(Sender: TObject);
+var b: TBitMap;
+begin
+  b := TBitmap.Create;
+  b.Height := Map.Height;
+  b.Width := Map.Width;
+  b.Canvas.CopyRect(rect(0,0,B.Width, B.Height), Map.Canvas, Map.ClientRect);
+  LstMapList.Items.AddObject(EdtMapName.Text,b);
+end;
+
+procedure TForm1.btnSnappingClick(Sender: TObject);
+begin
+  if snappingEnabled = true then
+    snappingEnabled := false
+  else
+    snappingEnabled := true;
+end;
+
+procedure TForm1.btnUndoClick(Sender: TObject);
+begin
+  if (counter > 0) then
+  begin
+    dec(counter); //decrement the counter
+    drawPreLines(); //draw the lines currently held in the array on the screen
+  end;
+
+end;
+
+procedure TForm1.btnDrawLinesClick(Sender: TObject);
+begin
+  if (drawingEnabled = false) then
+    drawingEnabled := true
+  else
+    drawingEnabled := false;
+end;
+
+procedure TForm1.btnDrawBuildingClick(Sender: TObject);
+begin
+  addingRoom := true;
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+application.Terminate;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+SnappingEnabled := False;
+Counter := 0;
+roomCounter := 0;
+addingRoom := false;
+drawingEnabled := false;
+
+ with Map, canvas do
+  begin
+    brush.color:=clwhite;
+    canvas.rectangle(clientrect);
+  end;
+end;
+
+procedure TForm1.MapMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var i, q: Integer;
+begin
+  if (addingRoom = true) then
+  begin
+    inc(roomCounter);
+    roomLocations[roomCounter].x := X;
+    roomLocations[roomCounter].y := Y;
+    addingRoom := false;
+    drawPreLines();
+    repeat
+      roomLocations[roomCounter].name := InputBox('Adding A Room', 'Please enter the name of the room:', 'Room ' + IntToStr(RoomCounter));
+    until roomLocations[roomCounter].name <> '';
+
+  end else if (drawingEnabled = true) then
+  begin
+    drawing := true;
+    if Drawing = True then
+      begin
+        with Map.Canvas do
+          begin
+          if (snappingEnabled = false) then
+          begin
+            ArrayPoints[Counter + 1, 1] := x;
+            ArrayPoints[Counter + 1, 2] := y;
+          end else begin
+            ArrayPoints[Counter + 1, 1] := roundLocation(x);
+            ArrayPoints[Counter + 1, 2] := roundLocation(y);
+          end;
+          end;
+      end;
+  end else begin
+    for i := 1 to roomCounter do
+    begin
+      if (x >= roomLocations[i].x) AND (x <= roomLocations[i].x + 10) AND (y >= roomLocations[i].y) AND (y <= roomLocations[i].y + 10)  then
+      begin
+        for q := 1 to roomCounter do
+          roomLocations[q].selected := false;
+        roomLocations[i].selected := true;
+        lblSelectedRoom.Caption := roomLocations[i].name + ' selected';
+      end;
+      drawPreLines();
+    end;
+  end;
+end;
+
+procedure TForm1.MapMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+var i : Integer;
+
+begin
+    if drawing = true then  //if we're drawing, we can draw the other line
+    begin
+      drawPreLines();  //draws the lines already held in the array on the canvas
+
+      map.Canvas.MoveTo(ArrayPoints[counter + 1, 1],  ArrayPoints[counter + 1, 2]);
+      if (snappingEnabled = false) then
+      begin
+        map.Canvas.LineTo(x, y);
+      end else begin
+        map.Canvas.LineTo(roundLocation(x), roundLocation(y));
+      end;
+    end;
+  end;
+
+procedure TForm1.MapMouseUp(Sender: TObject; Button: TMouseButton;
+                            Shift: TShiftState; X, Y: Integer);
+
+begin
+if Drawing then
+  with Map do
+    begin
+        drawing := false;
+        if snappingEnabled = false then
+        begin
+          arrayPoints[counter+1, 3] := x;
+          arrayPoints[counter+1, 4] := y;
+        end else begin
+          arrayPoints[counter+1, 3] := roundLocation(x);
+          arrayPoints[counter+1, 4] := roundLocation(y);
+        end;
+        inc(counter);
+    end;
+drawing := false;
+end;
+
+end.
